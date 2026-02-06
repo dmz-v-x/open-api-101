@@ -1,0 +1,249 @@
+    openapi: 3.0.3
+
+    info:
+      title: User Management API
+      description: API for managing users with authentication and pagination
+      version: 1.0.0
+      contact:
+        name: Platform Team
+        email: platform@example.com
+      license:
+        name: Apache 2.0
+        url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+    servers:
+      - url: http://localhost:3000
+        description: Local development
+      - url: https://api.example.com
+        description: Production
+
+    security:
+      - BearerAuth: []
+
+    paths:
+      /auth/login:
+        post:
+          summary: Login and get JWT
+          operationId: login
+          security: []
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/LoginRequest'
+          responses:
+            '200':
+              $ref: '#/components/responses/AuthSuccess'
+            '401':
+              $ref: '#/components/responses/AuthError'
+
+      /users:
+        get:
+          summary: List users
+          operationId: listUsers
+          parameters:
+            - $ref: '#/components/parameters/Page'
+            - $ref: '#/components/parameters/PageSize'
+          responses:
+            '200':
+              $ref: '#/components/responses/UserListResponse'
+
+        post:
+          summary: Create user
+          operationId: createUser
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/CreateUser'
+          responses:
+            '201':
+              $ref: '#/components/responses/UserResponse'
+            '400':
+              $ref: '#/components/responses/ValidationError'
+
+      /users/{id}:
+        get:
+          summary: Get user by ID
+          operationId: getUserById
+          parameters:
+            - $ref: '#/components/parameters/UserId'
+          responses:
+            '200':
+              $ref: '#/components/responses/UserResponse'
+            '404':
+              $ref: '#/components/responses/NotFoundError'
+
+    components:
+      securitySchemes:
+        BearerAuth:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+
+      parameters:
+        UserId:
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+
+        Page:
+          name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+          example: 1
+
+        PageSize:
+          name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+          example: 20
+
+      schemas:
+        LoginRequest:
+          type: object
+          properties:
+            email:
+              type: string
+              format: email
+            password:
+              type: string
+          required:
+            - email
+            - password
+          example:
+            email: alice@example.com
+            password: secret123
+
+        AuthToken:
+          type: object
+          properties:
+            accessToken:
+              type: string
+            expiresIn:
+              type: integer
+          required:
+            - accessToken
+            - expiresIn
+          example:
+            accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+            expiresIn: 3600
+
+        CreateUser:
+          type: object
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+              format: email
+            role:
+              type: string
+              enum:
+                - admin
+                - member
+          required:
+            - name
+            - email
+          example:
+            name: Alice
+            email: alice@example.com
+            role: member
+
+        User:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            email:
+              type: string
+              format: email
+            role:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+          required:
+            - id
+            - name
+            - email
+            - role
+            - createdAt
+          example:
+            id: 550e8400-e29b-41d4-a716-446655440000
+            name: Alice
+            email: alice@example.com
+            role: member
+            createdAt: 2024-01-01T10:00:00Z
+
+        Error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+          required:
+            - code
+            - message
+          example:
+            code: VALIDATION_ERROR
+            message: Email is required
+
+      responses:
+        UserResponse:
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+        UserListResponse:
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+
+        AuthSuccess:
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthToken'
+
+        AuthError:
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        ValidationError:
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        NotFoundError:
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
